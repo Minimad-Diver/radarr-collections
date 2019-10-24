@@ -523,8 +523,11 @@ if not peeps and not full:
     log(words[u'text'][u'run_col_mon'].format(*numbers) + u":\n")
     printtime= True
     for check_num, col_id in enumerate(col_ids):
-        white_dex = " "*(len(str(len(data))) + 1 - len(str(check_num + 1)))
-        collection_check(col_id)
+        try:
+            white_dex = " "*(len(str(len(data))) + 1 - len(str(check_num + 1)))
+            collection_check(col_id)
+        except:
+            print(col_id)
 
 #%% Person Monitor Loop
 stage = 3
