@@ -234,30 +234,32 @@ def database_check(id_check, white_name, json_in, input_data):
 #%% Collection Parts Check Function
 
 def collection_check(col_id, tmdbId = None):
-    if single: log("")
-    col_json = api("TMDB", com = "col", args = col_id)
-    if len(col_json['name']) < int(config[u'results'][u'column']): top_c = int(config[u'results'][u'column'])
-    else: top_c = len(col_json['name']) + 5
-    white_name = " "*(top_c - len(col_json['name'])) 
-    if art: col_art.append(words[u'text'][u'col_art'].format(col_json['name'], white_name, col_json['poster_path']))
-    parts = [col['id'] for col in col_json['parts']]
-    number = len(parts)
-    if stage == 1:
-        try: parts.remove(int(tmdbId))
-        except: pass
-        log("")
-    if stage in [0, 1]: payload = ">", " "*(1 + len(str(len(data)))), col_json['name'], col_id, number
-    elif stage == 2: payload = str(check_num + 1) + ":", white_dex, col_json['name'], col_id, number
-    if stage == 1: input_id = check_num
-    elif stage in [0, 2]:
-        source = list(set(parts).intersection(tmdb_ids))
-        if len(source) > 0: input_id = source[0]
-        elif not cache: input_id = int(config[u'adding'][u'profile'])
-        else: input_id = None
-    log(words[u'text'][u'other'].format(*payload) +  u"\n")
-    for id_check in parts:  database_check(id_check, white_name, col_json, input_id)
-    if any([full, all([not full, tmdbId not in skip])]): log("")
-                
+    try:
+        if single: log("")
+        col_json = api("TMDB", com = "col", args = col_id)
+        if len(col_json['name']) < int(config[u'results'][u'column']): top_c = int(config[u'results'][u'column'])
+        else: top_c = len(col_json['name']) + 5
+        white_name = " "*(top_c - len(col_json['name'])) 
+        if art: col_art.append(words[u'text'][u'col_art'].format(col_json['name'], white_name, col_json['poster_path']))
+        parts = [col['id'] for col in col_json['parts']]
+        number = len(parts)
+        if stage == 1:
+            try: parts.remove(int(tmdbId))
+            except: pass
+            log("")
+        if stage in [0, 1]: payload = ">", " "*(1 + len(str(len(data)))), col_json['name'], col_id, number
+        elif stage == 2: payload = str(check_num + 1) + ":", white_dex, col_json['name'], col_id, number
+        if stage == 1: input_id = check_num
+        elif stage in [0, 2]:
+            source = list(set(parts).intersection(tmdb_ids))
+            if len(source) > 0: input_id = source[0]
+            elif not cache: input_id = int(config[u'adding'][u'profile'])
+            else: input_id = None
+        log(words[u'text'][u'other'].format(*payload) +  u"\n")
+        for id_check in parts:  database_check(id_check, white_name, col_json, input_id)
+        if any([full, all([not full, tmdbId not in skip])]): log("")
+    except:
+        print(col_id)
 #%% Movie in Collection Check Function
 
 def tmdb_check(tmdbId):
