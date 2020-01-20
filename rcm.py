@@ -1,24 +1,37 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-import requests, json, datetime, os, sys, getopt, time, atexit, configparser
+import requests
+import json
+import datetime
+import os
+import sys
+import getopt
+import time
+import atexit
+import configparser
 
-for var in ['quiet', 'full', 'peeps', 'art', 'nolog', 'cache', 'single', \
+for var in ['quiet', 'full', 'peeps', 'art', 'nolog', 'cache', 'single',
             'quick', 'printtime', 'first']:
     exec("{} = False".format(var))
-check_num = 0 # 0
+check_num = 0  # 0
+
 
 def get_dir(input_path):
     path = list(os.path.split(input_path))
-    if path[0] in ["~","."]: path[0] = os.getcwd()
+    if path[0] in ["~", "."]:
+        path[0] = os.getcwd()
     return os.path.join(*path)
+
 
 def fatal(error):
     global printtime
     printtime = False
-    if quiet: print(error)
+    if quiet:
+        print(error)
     log(error + u"\n")
     sys.exit(2)
+
 
 def nologfatal(error):
     global nolog, quiet
@@ -26,103 +39,130 @@ def nologfatal(error):
     nolog = True
     fatal(error)
 
-#%% Output files
+# %% Output files
+
 
 def log(text):
-    if printtime and text != "": pay = datetime.datetime.now().strftime("[%y-%m-%d %H:%M:%S] ") + text
-    else: pay = text
-    if not quiet: 
-        try: print(pay)
-        except: print(pay.encode(sys.getdefaultencoding(), errors = 'replace'))
-    if not nolog: 
-        f = open(os.path.join(output_path,'logs',"log_{}.txt".format(start_time)),'a+')
-        if sys.version_info[0] == 2: f.write(pay.encode("utf-8", errors = "replace") + "\n")
-        elif sys.version_info[0] == 3: f.write(pay + u"\n")
+    if printtime and text != "":
+        pay = datetime.datetime.now().strftime("[%y-%m-%d %H:%M:%S] ") + text
+    else:
+        pay = text
+    if not quiet:
+        try:
+            print(pay)
+        except:
+            print(pay.encode(sys.getdefaultencoding(), errors='replace'))
+    if not nolog:
+        f = open(os.path.join(output_path, 'logs',
+                              "log_{}.txt".format(start_time)), 'a+')
+        if sys.version_info[0] == 2:
+            f.write(pay.encode("utf-8", errors="replace") + "\n")
+        elif sys.version_info[0] == 3:
+            f.write(pay + u"\n")
         f.close()
+
 
 def whitespace(tmdbId, title, year, rad_id):
     w_id = " "*(10 - len(str(tmdbId)))
     w_title = " "*(title_top - len(title))
-    if year == 0: w_title += " "*3
+    if year == 0:
+        w_title += " "*3
     w_rad = " "*(rad_top - len(str(rad_id)))
     return w_rad, w_id, w_title
 
+
 def mov_info(index):
-    w_rad, w_id, w_title = whitespace(data[index]["tmdbId"], data[index]['title'], data[index]['year'], data[index]['id'])
+    w_rad, w_id, w_title = whitespace(
+        data[index]["tmdbId"], data[index]['title'], data[index]['year'], data[index]['id'])
     return data[index]['id'], w_rad, data[index]["tmdbId"], w_id, data[index]['title'], data[index]['year'], w_title
+
 
 def datadump():
     global printtime
     if len(found_col)+len(found_per) != 0 and cache:
-        if fails == 10: 
+        if fails == 10:
             printtime = False
             log(words[u'text'][u'auto_cache'].format(start_time) + u"\n")
         found_col.sort()
         found_per.sort()
-        g = open(os.path.join(output_path,'output','found_{0}.txt'.format(start_time)),'w+')
-        payload = len(found_col) + len(found_per), len(found_col), len(found_per)
+        g = open(os.path.join(output_path, 'output',
+                              'found_{0}.txt'.format(start_time)), 'w+')
+        payload = len(found_col) + \
+            len(found_per), len(found_col), len(found_per)
         if sys.version_info[0] == 2:
             g.write(words[u'text'][u'name'] + "\n\n")
             g.write(words[u'text'][u'found_open'].format(*payload) + "\n\n")
-            if len(found_col) != 0: 
-                g.write(words[u'text'][u'found_start'].format(*payload) + "\n\n")
-                for item in found_col: g.write(item.encode("utf-8", errors = "replace") + "\n")
+            if len(found_col) != 0:
+                g.write(words[u'text'][u'found_start'].format(
+                    *payload) + "\n\n")
+                for item in found_col:
+                    g.write(item.encode("utf-8", errors="replace") + "\n")
                 g.write("\n")
-            if len(found_per) != 0: 
-                g.write(words[u'text'][u'found_middle'].format(*payload) + "\n\n")
-                for item in found_per: g.write(item.encode("utf-8", errors = "replace") + "\n")
+            if len(found_per) != 0:
+                g.write(words[u'text'][u'found_middle'].format(
+                    *payload) + "\n\n")
+                for item in found_per:
+                    g.write(item.encode("utf-8", errors="replace") + "\n")
                 g.write("\n")
             g.write(words[u'text'][u'found_black'] + "\n\n")
             g.write("blacklist = {}".format(str(found_black).strip("[]")))
         elif sys.version_info[0] == 3:
             g.write(words[u'text'][u'name'] + u"\n\n")
             g.write(words[u'text'][u'found_open'].format(*payload) + u"\n\n")
-            if len(found_col) != 0: 
-                g.write(words[u'text'][u'found_start'].format(*payload) + u"\n\n")
-                for item in found_col: g.write(item + u"\n")
+            if len(found_col) != 0:
+                g.write(words[u'text'][u'found_start'].format(
+                    *payload) + u"\n\n")
+                for item in found_col:
+                    g.write(item + u"\n")
                 g.write(u"\n")
-            if len(found_per) != 0: 
-                g.write(words[u'text'][u'found_middle'].format(*payload) +  u"\n\n")
-                for item in found_per: g.write(item +  u"\n")
+            if len(found_per) != 0:
+                g.write(words[u'text'][u'found_middle'].format(
+                    *payload) + u"\n\n")
+                for item in found_per:
+                    g.write(item + u"\n")
                 g.write(u"\n")
             g.write(words[u'text'][u'found_black'] + u"\n\n")
             g.write(u"blacklist = {}".format(str(found_black).strip("[]")))
         g.close()
-        
+
     if art and not peeps:
         col_art.sort()
-        g = open(os.path.join(output_path,'output','art_{0}.txt'.format(start_time)), 'w+')
+        g = open(os.path.join(output_path, 'output',
+                              'art_{0}.txt'.format(start_time)), 'w+')
         if sys.version_info[0] == 2:
-            g.write(words[u'text'][u'name'] + "\n\n") 
-            for line in col_art: g.write(line.encode("utf-8", errors = "replace") +  "\n")
+            g.write(words[u'text'][u'name'] + "\n\n")
+            for line in col_art:
+                g.write(line.encode("utf-8", errors="replace") + "\n")
         elif sys.version_info[0] == 3:
             g.write(words[u'text'][u'name'] + u"\n\n")
-            for line in col_art: g.write(line +  u"\n")
+            for line in col_art:
+                g.write(line + u"\n")
         g.close()
-        
-    if check_num != 0:    
+
+    if check_num != 0:
         col_ids.sort()
         [tmdb_ids.remove(mov_id) for mov_id in wanted]
         [tmdb_ids.remove(mov_id) for mov_id in list(set(unmon)-set(wanted))]
-        g = open(os.path.join(config_path,u'memory.dat'),'w+')
-        if sys.version_info[0] == 2: 
+        g = open(os.path.join(config_path, u'memory.dat'), 'w+')
+        if sys.version_info[0] == 2:
             g.write(str(tmdb_ids) + "\n")
             g.write(str(col_ids) + "\n")
             g.write(str(wanted) + "\n")
             g.write(str(unmon) + "\n")
-        elif sys.version_info[0] == 3: 
-            g.write(str(tmdb_ids) +  u"\n")
+        elif sys.version_info[0] == 3:
+            g.write(str(tmdb_ids) + u"\n")
             g.write(str(col_ids) + u"\n")
             g.write(str(wanted) + u"\n")
             g.write(str(unmon) + u"\n")
         g.close()
-    
-    printtime = False
-    log(words[u'text'][u'bye'].format(len(found_col) + len(found_per))) 
- 
-#%%  API Function
 
-def api(host, com = "get", args = None ):
+    printtime = False
+    log(words[u'text'][u'bye'].format(len(found_col) + len(found_per)))
+
+# %%  API Function
+
+
+def api(host, com="get", args=None):
     global printtime
     """
     radarr: get & {} | lookup & {id:} | post & {**data}
@@ -133,93 +173,123 @@ def api(host, com = "get", args = None ):
         key = {"apikey": config[u'radarr'][u'api_key']}
         if com == "lookup":
             url += "/lookup/tmdb"
-            key.update({"tmdbid" : int(args)})
+            key.update({"tmdbid": int(args)})
         elif com == "post":
             url += u"?apikey=" + config[u'radarr'][u'api_key']
-            response = requests.post(url, data = args)
+            response = requests.post(url, data=args)
             return response.status_code
     elif host == "TMDB":
         key = {"api_key": config[u'tmdb'][u'api_key']}
-        if   com == "mov": endpoint = "movie"
-        elif com == "col": endpoint = "collection"
-        elif com == "per": 
+        if com == "mov":
+            endpoint = "movie"
+        elif com == "col":
+            endpoint = "collection"
+        elif com == "per":
             endpoint = "person"
-            key.update({"append_to_response" : "movie_credits"})
-        url = "https://api.themoviedb.org/3/{0}/{1}".format(endpoint, str(args))
-    
+            key.update({"append_to_response": "movie_credits"})
+        url = "https://api.themoviedb.org/3/{0}/{1}".format(
+            endpoint, str(args))
+
     good = False
     tries = 1
-    while not good:    
-        response = requests.get(url, params = key )
+    while not good:
+        response = requests.get(url, params=key)
         response.content.decode("utf-8")
-        code = response.status_code 
-        
-        if code == 200: # GOOD
+        code = response.status_code
+
+        if code == 200:  # GOOD
             good = True
-            return response.json()  ## EXIT
-        elif code == 404: # MINOR
+            return response.json()  # EXIT
+        elif code == 404:  # MINOR
             good = True
-            return code ## EXIT
-        elif code == 429: # TOO FAST
-            wait = int(response.headers["Retry-After"]) + 1 
-            if not quiet: print(words[u'text'][u'api_wait'].format(wait))
-            time.sleep(wait) ## LOOP
-        elif code == 401: fatal(words[u'text'][u'api_auth'].format(host))
-        elif code in (502,503): fatal(u"\n" + words[u'text'][u'offline'].format(host, check_num))
-        else: # UNKNOWN
-            if tries < 6: ## RETRY
+            return code  # EXIT
+        elif code == 429:  # TOO FAST
+            wait = int(response.headers["Retry-After"]) + 1
+            if not quiet:
+                print(words[u'text'][u'api_wait'].format(wait))
+            time.sleep(wait)  # LOOP
+        elif code == 401:
+            fatal(words[u'text'][u'api_auth'].format(host))
+        elif code in (502, 503):
+            fatal(u"\n" + words[u'text'][u'offline'].format(host, check_num))
+        else:  # UNKNOWN
+            if tries < 6:  # RETRY
                 print(words[u'text'][u'api_misc'].format(host, code, tries))
                 time.sleep(5 + tries)
-                tries += 1 ### LOOP
-            else: 
+                tries += 1  # LOOP
+            else:
                 printtime = False
-                fatal(u"\n" + words[u'text'][u'api_retry'].format(host, check_num)) ## FATAL
-    
-#%% Movie in Database Check Function
+                # FATAL
+                fatal(u"\n" + words[u'text']
+                      [u'api_retry'].format(host, check_num))
+
+# %% Movie in Database Check Function
+
 
 def database_check(id_check, white_name, json_in, input_data):
     global cache, fails, printtime
     if id_check in tmdb_ids:
-        skip.append(id_check) 
-        log(words[u'text'][u'in_data'].format(*mov_info(tmdb_ids.index(id_check))))
+        skip.append(id_check)
+        log(words[u'text'][u'in_data'].format(
+            *mov_info(tmdb_ids.index(id_check))))
     else:
-        lookup_json = api("Radarr", com = "lookup", args = id_check)
-        w_rad, w_id, w_title = whitespace(id_check, lookup_json['title'], lookup_json['year'], "")
-        payload = " "*11, w_rad, id_check, w_id, lookup_json['title'], lookup_json['year'], w_title
-        if id_check in blacklist: log(words[u'text'][u'ignore'].format(*payload))
+        lookup_json = api("Radarr", com="lookup", args=id_check)
+        w_rad, w_id, w_title = whitespace(
+            id_check, lookup_json['title'], lookup_json['year'], "")
+        payload = " " * \
+            11, w_rad, id_check, w_id, lookup_json['title'], lookup_json['year'], w_title
+        if id_check in blacklist:
+            log(words[u'text'][u'ignore'].format(*payload))
         elif lookup_json['ratings'][u'value'] < float(config[u'blacklist'][u'min_rating']) \
-        or lookup_json['ratings'][u'votes'] < int(config[u'blacklist'][u'min_votes']): log(words[u'text'][u'rated'].format(*payload))
-        elif stage in [0,1,2] and not any([not lookup_json[u'year'] < int(config[u'blacklist'][u'min_year']), lookup_json[u'year'] == 0]):
-            log(words[u'text'][u'early'].format(*payload + (config[u'blacklist'][u'min_year'],)))
+                or lookup_json['ratings'][u'votes'] < int(config[u'blacklist'][u'min_votes']):
+            log(words[u'text'][u'rated'].format(*payload))
+        elif stage in [0, 1, 2] and not any([not lookup_json[u'year'] < int(config[u'blacklist'][u'min_year']), lookup_json[u'year'] == 0]):
+            log(words[u'text'][u'early'].format(
+                *payload + (config[u'blacklist'][u'min_year'],)))
         elif stage == 3 and not any([not lookup_json[u'year'] < int(people[person][u'min_year']), lookup_json[u'year'] == 0]):
-            log(words[u'text'][u'early'].format(*payload + (people[person][u'min_year'],)))
+            log(words[u'text'][u'early'].format(
+                *payload + (people[person][u'min_year'],)))
         else:
             log(words[u'text'][u'not_data'].format(*payload))
-            if cache: post_data = {}
+            if cache:
+                post_data = {}
             else:
-                if stage == 1: index = input_data
-                elif stage in [0, 2]: index = tmdb_ids.index(input_data) 
-                elif stage == 3: index = tmdb_ids.index(int(config[u'adding'][u'profile']))
-                if 'true' in config[u'radarr'][u'docker'].lower(): path = "/".join(data[index]['path'].split("/")[:-1])
-                else: path = os.path.split(data[index]['path'])[0]
-                post_data = {u"qualityProfileId" : int(data[index][u'qualityProfileId']),
-                         u"rootFolderPath": path,
-                         u"monitored" : config[u'adding'][u'monitored'],
-                         u"addOptions" : {u"searchForMovie" : config[u'adding'][u'autosearch']}}
-            for dictkey in [u"tmdbId",u"title",u"titleSlug",u"images",u"year"]: post_data.update({dictkey : lookup_json[dictkey]})
+                if stage == 1:
+                    index = input_data
+                elif stage in [0, 2]:
+                    index = tmdb_ids.index(input_data)
+                elif stage == 3:
+                    index = tmdb_ids.index(int(config[u'adding'][u'profile']))
+                if 'true' in config[u'radarr'][u'docker'].lower():
+                    path = "/".join(data[index]['path'].split("/")[:-1])
+                else:
+                    path = os.path.split(data[index]['path'])[0]
+                post_data = {u"qualityProfileId": int(data[index][u'qualityProfileId']),
+                             u"rootFolderPath": path,
+                             u"monitored": config[u'adding'][u'monitored'],
+                             u"addOptions": {u"searchForMovie": config[u'adding'][u'autosearch']}}
+            for dictkey in [u"tmdbId", u"title", u"titleSlug", u"images", u"year"]:
+                post_data.update({dictkey: lookup_json[dictkey]})
             white_cid = " "*(15 - len(str(post_data["tmdbId"])))
-            if stage == 3: name = json_in['name'] + input_data
-            else: name = json_in['name']
-            payload = words[u'text'][u'found'].format(name, white_name, post_data[u'tmdbId'], white_cid, post_data['title'], post_data['year'])
-            if stage in [0, 1, 2]: found_col.append(payload)
-            elif stage == 3: found_per.append(payload)
+            if stage == 3:
+                name = json_in['name'] + input_data
+            else:
+                name = json_in['name']
+            payload = words[u'text'][u'found'].format(
+                name, white_name, post_data[u'tmdbId'], white_cid, post_data['title'], post_data['year'])
+            if stage in [0, 1, 2]:
+                found_col.append(payload)
+            elif stage == 3:
+                found_per.append(payload)
             found_black.append(post_data[u'tmdbId'])
             if not cache:
-                if sys.version_info[0] == 2: data_payload = json.dumps(post_data)
-                elif sys.version_info[0] == 3: data_payload = str(post_data).replace("'","\"")
-                post = api("Radarr", com = "post", args = data_payload)
+                if sys.version_info[0] == 2:
+                    data_payload = json.dumps(post_data)
+                elif sys.version_info[0] == 3:
+                    data_payload = str(post_data).replace("'", "\"")
+                post = api("Radarr", com="post", args=data_payload)
                 white_yn = " "*(rad_top + 10)
-                if post == 201: 
+                if post == 201:
                     log(words[u'text'][u'add_true'].format(white_yn))
                     tmdb_ids.append(post_data['tmdbId'])
                 else:
@@ -228,129 +298,195 @@ def database_check(id_check, white_name, json_in, input_data):
                     if fails == 10:
                         cache = True
                         printtime = False
-                        log(u"\n" + words[u'text'][u'retry_err'] +  u"\n")
+                        log(u"\n" + words[u'text'][u'retry_err'] + u"\n")
                         printtime = True
 
-#%% Collection Parts Check Function
+# %% Collection Parts Check Function
 
-def collection_check(col_id, tmdbId = None):
+
+def collection_check(col_id, tmdbId=None):
     try:
-        if single: log("")
-        col_json = api("TMDB", com = "col", args = col_id)
-        if len(col_json['name']) < int(config[u'results'][u'column']): top_c = int(config[u'results'][u'column'])
-        else: top_c = len(col_json['name']) + 5
-        white_name = " "*(top_c - len(col_json['name'])) 
-        if art: col_art.append(words[u'text'][u'col_art'].format(col_json['name'], white_name, col_json['poster_path']))
+        if single:
+            log("")
+        col_json = api("TMDB", com="col", args=col_id)
+        if len(col_json['name']) < int(config[u'results'][u'column']):
+            top_c = int(config[u'results'][u'column'])
+        else:
+            top_c = len(col_json['name']) + 5
+        white_name = " "*(top_c - len(col_json['name']))
+        if art:
+            col_art.append(words[u'text'][u'col_art'].format(
+                col_json['name'], white_name, col_json['poster_path']))
         parts = [col['id'] for col in col_json['parts']]
         number = len(parts)
         if stage == 1:
-            try: parts.remove(int(tmdbId))
-            except: pass
+            try:
+                parts.remove(int(tmdbId))
+            except:
+                pass
             log("")
-        if stage in [0, 1]: payload = ">", " "*(1 + len(str(len(data)))), col_json['name'], col_id, number
-        elif stage == 2: payload = str(check_num + 1) + ":", white_dex, col_json['name'], col_id, number
-        if stage == 1: input_id = check_num
+        if stage in [0, 1]:
+            payload = ">", " "*(1 + len(str(len(data)))
+                                ), col_json['name'], col_id, number
+        elif stage == 2:
+            payload = str(check_num + 1) + \
+                ":", white_dex, col_json['name'], col_id, number
+        if stage == 1:
+            input_id = check_num
         elif stage in [0, 2]:
             source = list(set(parts).intersection(tmdb_ids))
-            if len(source) > 0: input_id = source[0]
-            elif not cache: input_id = int(config[u'adding'][u'profile'])
-            else: input_id = None
-        log(words[u'text'][u'other'].format(*payload) +  u"\n")
-        for id_check in parts:  database_check(id_check, white_name, col_json, input_id)
-        if any([full, all([not full, tmdbId not in skip])]): log("")
+            if len(source) > 0:
+                input_id = source[0]
+            elif not cache:
+                input_id = int(config[u'adding'][u'profile'])
+            else:
+                input_id = None
+        log(words[u'text'][u'other'].format(*payload) + u"\n")
+        for id_check in parts:
+            database_check(id_check, white_name, col_json, input_id)
+        if any([full, all([not full, tmdbId not in skip])]):
+            log("")
     except:
         print(col_id)
-#%% Movie in Collection Check Function
+# %% Movie in Collection Check Function
+
 
 def tmdb_check(tmdbId):
-    mov_json = api("TMDB", com = "mov", args = tmdbId)
-    if mov_json == 404: log(words[u'text'][u'col_err'].format(logtext))
-    elif type(mov_json['belongs_to_collection']) != type(None): # Collection Found
+    mov_json = api("TMDB", com="mov", args=tmdbId)
+    if mov_json == 404:
+        log(words[u'text'][u'col_err'].format(logtext))
+    elif type(mov_json['belongs_to_collection']) != type(None):  # Collection Found
         col_id = mov_json['belongs_to_collection'][u'id']
-        if col_id not in col_ids: col_ids.append(col_id)
+        if col_id not in col_ids:
+            col_ids.append(col_id)
         log(words[u'text'][u'in_col'].format(logtext))
         collection_check(col_id, tmdbId)
-    else: log(words[u'text'][u'no_col'].format(logtext))          
+    else:
+        log(words[u'text'][u'no_col'].format(logtext))
 
-#%% Person Credits Check Function
+# %% Person Credits Check Function
+
 
 def person_check(person):
     per_id = int(people[person][u'id'])
-    per_json = api("TMDB", com = "per", args = per_id)
-    
-    if len(per_json[u'name']) + 20 < int(config[u'results'][u'column']): top_p = int(config[u'results'][u'column'])
-    else: top_p = len(per_json[u'name']) + 25
-    search = [role.strip().title() for role in people[person][u'monitor'].split(",")]
-    reject = [role.strip().lower() for role in people[person][u'reject'].split(",")]
-    if u'&name' in reject: reject.append(per_json[u'name'].lower())
-    payload = str(per_num + 1) + ":", white_dex, per_json['name'], per_id, ", ".join(search)
+    per_json = api("TMDB", com="per", args=per_id)
+
+    if len(per_json[u'name']) + 20 < int(config[u'results'][u'column']):
+        top_p = int(config[u'results'][u'column'])
+    else:
+        top_p = len(per_json[u'name']) + 25
+
+    search = [role.strip().title()
+              for role in people[person][u'monitor'].split(",")]
+
+    reject = [role.strip().lower()
+              for role in people[person][u'reject'].split(",")]
+
+    if u'&name' in reject:
+        reject.append(per_json[u'name'].lower())
+
+    payload = str(per_num + 1) + \
+        ":", white_dex, per_json['name'], per_id, ", ".join(search)
+
     log(words[u'text'][u'person'].format(*payload))
+
     scan_hold = []
-    if len(list(set(search).intersection(['Cast','Acting']))) != 0:
+
+    if len(list(set(search).intersection(['Cast', 'Acting']))) != 0:
         cast = []
         for movie in per_json[u'movie_credits']['cast']:
-            try: role = movie[u'character'].lower()
-            except: 
+            try:
+                role = movie[u'character'].lower()
+            except:
                 movie[u'character'] = u'No Data'
                 role = movie[u'character'].lower()
-            for string in ["/","(",")"]: role = role.replace(string,",")
+            for string in ["/", "(", ")"]:
+                role = role.replace(string, ",")
             role = role.split(",")
             role = [string.strip() for string in role]
             if not any([len(list(set(role).intersection(reject))) != 0,
-                         all(['&blank' in reject,
-                              movie[u'character'] == ""])]):
+                        all(['&blank' in reject,
+                             movie[u'character'] == ""])]):
                 cast.append(movie)
+
         log("")
         log(words[u'text'][u'cast'].format(len(cast)))
         log("")
+
         for movie in cast:
             try:
                 scan_hold.append(movie['id'])
-                white_name = " "*(top_p - len(per_json['name'] + " - Cast - " + movie[u'character']))
-                database_check(movie['id'], white_name, per_json, " - Cast - " + movie[u'character'].title())
+                white_name = " " * \
+                    (top_p - len(per_json['name'] +
+                                 " - Cast - " + movie[u'character']))
+                database_check(movie['id'], white_name, per_json,
+                               " - Cast - " + movie[u'character'].title())
             except:
-                print('error')
+                pass
+
     roles = {}
+
     for movie in per_json[u'movie_credits']['crew']:
-        if all([movie['department'].title() in search, \
-                movie['id'] not in scan_hold]):
-            if movie['department'] not in roles.keys():
-                roles.update({movie['department'] : []})
-            roles[movie['department']].append([movie['id'],movie['job'].title()])
-            scan_hold.append(movie['id'])
-    for role in roles.keys(): 
+        try:
+            if all([movie['department'].title() in search,
+                    movie['id'] not in scan_hold]):
+                if movie['department'] not in roles.keys():
+                    roles.update({movie['department']: []})
+                roles[movie['department']].append(
+                    [movie['id'], movie['job'].title()])
+                scan_hold.append(movie['id'])
+        except:
+            pass
+
+    for role in roles.keys():
         log("")
         log(words[u'text'][u'crew'].format(role, len(roles[role])))
-        log("")        
+        log("")
         for tmdb_Id, job in roles[role]:
-            white_name = " "*(top_p - len(per_json['name'] + " - " + role + " - " + job))    
-            database_check(tmdb_Id, white_name, per_json, " - " + role + " - " + job)
+            try:
+                white_name = " " * \
+                    (top_p - len(per_json['name'] +
+                                 " - " + role + " - " + job))
+                database_check(tmdb_Id, white_name, per_json,
+                               " - " + role + " - " + job)
+            except:
+                pass
 
-#%% Config Check
-if len(sys.argv) != 1 and sys.argv[1][0] != "-": config_path = get_dir(sys.argv[1])
-else: nologfatal(u"\n" + u"Error - path to config folder must be given in command. eg: python rcm.py ./config")
-if not os.path.isfile(os.path.join(config_path, "rcm.conf")): nologfatal(u"\n" + "Error - {}/rcm.conf does not exist.".format(config_path))
-    
-#%% Configuration
 
-start_time = datetime.datetime.now().strftime("%y-%m-%d_%H-%M-%S")    
-    
-words = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation(),allow_no_value=True)
-words.read(os.path.join(config_path,u'words.conf'))
+# %% Config Check
+if len(sys.argv) != 1 and sys.argv[1][0] != "-":
+    config_path = get_dir(sys.argv[1])
+else:
+    nologfatal(
+        u"\n" + u"Error - path to config folder must be given in command. eg: python rcm.py ./config")
+if not os.path.isfile(os.path.join(config_path, "rcm.conf")):
+    nologfatal(u"\n" + "Error - {}/rcm.conf does not exist.".format(config_path))
+
+# %% Configuration
+
+start_time = datetime.datetime.now().strftime("%y-%m-%d_%H-%M-%S")
+
+words = configparser.ConfigParser(
+    interpolation=configparser.ExtendedInterpolation(), allow_no_value=True)
+words.read(os.path.join(config_path, u'words.conf'))
 config = configparser.ConfigParser(allow_no_value=True)
-config.read(os.path.join(config_path,u'rcm.conf'))
+config.read(os.path.join(config_path, u'rcm.conf'))
 people = configparser.ConfigParser(allow_no_value=True)
-people.read(os.path.join(config_path,u'people.conf'))
+people.read(os.path.join(config_path, u'people.conf'))
 
-if config[u'results'][u'path'] == "": config[u'results'][u'path'] = u"./"
+if config[u'results'][u'path'] == "":
+    config[u'results'][u'path'] = u"./"
 output_path = get_dir(config[u'results'][u'path'])
 
-if not os.path.exists(os.path.join(output_path,"logs")): os.mkdir(os.path.join(output_path,"logs"))
-if not os.path.exists(os.path.join(output_path,"output")): os.mkdir(os.path.join(output_path,"output"))
+if not os.path.exists(os.path.join(output_path, "logs")):
+    os.mkdir(os.path.join(output_path, "logs"))
+if not os.path.exists(os.path.join(output_path, "output")):
+    os.mkdir(os.path.join(output_path, "output"))
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[2:],"hqdfas:ncpt:u",["help","quiet","down","full","art","start=","nolog","cache","people","tmdbid=","up"])
+        opts, args = getopt.getopt(sys.argv[2:], "hqdfas:ncpt:u", [
+                                   "help", "quiet", "down", "full", "art", "start=", "nolog", "cache", "people", "tmdbid=", "up"])
     except getopt.GetoptError:
         print(u"\n" + u'Error in options\n')
         print(words[u'help'][u'text'])
@@ -362,169 +498,224 @@ if __name__ == '__main__':
         elif opt in ("-d", "--down"):   # Updates 13-3-19
             print(u"\n" + "Error: -d option moved to rcm.conf for permanence" + u"\n")
             sys.exit()
-        elif opt in ("-q", "--quiet"): quiet = True
-        elif opt in ("-f", "--full"): full = True
-        elif opt in ("-p", "--people"): peeps = True
-        elif opt in ("-a", "--art"): art = True
-        elif opt in ("-s", "--start"): check_num = int(arg)
-        elif opt in ("-n", "--nolog"): nolog = True
-        elif opt in ("-c", "--cache"): cache = True
-        elif opt in ("-u", "--up"): quick = True
+        elif opt in ("-q", "--quiet"):
+            quiet = True
+        elif opt in ("-f", "--full"):
+            full = True
+        elif opt in ("-p", "--people"):
+            peeps = True
+        elif opt in ("-a", "--art"):
+            art = True
+        elif opt in ("-s", "--start"):
+            check_num = int(arg)
+        elif opt in ("-n", "--nolog"):
+            nolog = True
+        elif opt in ("-c", "--cache"):
+            cache = True
+        elif opt in ("-u", "--up"):
+            quick = True
         elif opt in ("-t", "--tmdbid"):
             single = True
             single_id = int(arg)
 
-if check_num != 0: full = True
+if check_num != 0:
+    full = True
 if os.path.isfile(os.path.join(config_path, u'memory.dat')):
     memory = open(os.path.join(config_path, u'memory.dat'), "r")
     memory = memory.readlines()
-    if full: skip, old_want, old_unmon = [],[],[]
+    if full:
+        skip, old_want, old_unmon = [], [], []
     else:
         skip = memory[0].strip('[]\n').split(',')
         skip = [int(mov_id) for mov_id in skip]
         if len(memory) > 2:
             old_want = memory[2].strip('[]\n').split(',')
-            if old_want[0] != "": old_want = [int(mov_id) for mov_id in old_want]
-            else: old_want = []
+            if old_want[0] != "":
+                old_want = [int(mov_id) for mov_id in old_want]
+            else:
+                old_want = []
             old_unmon = memory[3].strip('[]\n').split(',')
-            if old_unmon[0] != "": old_unmon = [int(mov_id) for mov_id in old_unmon]
-            else: old_unmon = []
-        else: old_want, old_unmon = [],[]
-    if full and check_num == 0: col_ids = []
+            if old_unmon[0] != "":
+                old_unmon = [int(mov_id) for mov_id in old_unmon]
+            else:
+                old_unmon = []
+        else:
+            old_want, old_unmon = [], []
+    if full and check_num == 0:
+        col_ids = []
     else:
         col_ids = memory[1].strip('[]\n').split(',')
-        if col_ids[0] != "": col_ids = [int(col_id) for col_id in col_ids]
-        else: col_ids = []
+        if col_ids[0] != "":
+            col_ids = [int(col_id) for col_id in col_ids]
+        else:
+            col_ids = []
 else:
     check_num = 0
     first = True
     full = True
-    skip, col_ids = [],[]
+    skip, col_ids = [], []
 
 
-#%% Updates Compatibility Checker
-            
-if u'words_update' not in words['text'].keys(): nologfatal(u"\n" + u"Error - words.conf has been updated. Please reload.") # 13-3-19
-if len(set([u'file', u'unmonitored']).intersection(words['text'].keys())) != 2: nologfatal(u"\n" + words[u'text'][u'words_update'])
+# %% Updates Compatibility Checker
 
-if len(set([u'ignore_wanted', u'ignore_unmonitored']).intersection(config[u'results'].keys())) != 2 : 
-    nologfatal(u"\n" + words[u'text'][u'config_update'] + " Added 'ignore_wanted' and 'ignore_unmonitored' to results section.")
+if u'words_update' not in words['text'].keys():
+    # 13-3-19
+    nologfatal(u"\n" + u"Error - words.conf has been updated. Please reload.")
+if len(set([u'file', u'unmonitored']).intersection(words['text'].keys())) != 2:
+    nologfatal(u"\n" + words[u'text'][u'words_update'])
 
-if len(people.sections()) != 0 and len(set([u'min_year',u'reject']).intersection(people[people.sections()[0]])) != 2: nologfatal(u"\n" + words[u'text'][u'people_update'] + " Added 'min_year' and 'reject' to each person.")
+if len(set([u'ignore_wanted', u'ignore_unmonitored']).intersection(config[u'results'].keys())) != 2:
+    nologfatal(u"\n" + words[u'text'][u'config_update'] +
+               " Added 'ignore_wanted' and 'ignore_unmonitored' to results section.")
 
-#%% Data grab
+if len(people.sections()) != 0 and len(set([u'min_year', u'reject']).intersection(people[people.sections()[0]])) != 2:
+    nologfatal(u"\n" + words[u'text'][u'people_update'] +
+               " Added 'min_year' and 'reject' to each person.")
 
-if u'true' in config[u'radarr'][u'ssl'].lower(): radarr_url = u"https://"
-else: radarr_url = u"http://"
+# %% Data grab
+
+if u'true' in config[u'radarr'][u'ssl'].lower():
+    radarr_url = u"https://"
+else:
+    radarr_url = u"http://"
 radarr_url += u"{0}/api/movie".format(config[u'radarr'][u'server'])
 
 data = api("Radarr")
-tmdb_ids, wanted, unmon = [],[],[]
+tmdb_ids, wanted, unmon = [], [], []
 for movie in data:
     tmdb_ids.append(movie["tmdbId"])
-    if u'true' in config[u'results'][u'ignore_wanted'].lower() and not movie['hasFile']: 
+    if u'true' in config[u'results'][u'ignore_wanted'].lower() and not movie['hasFile']:
         wanted.append(movie["tmdbId"])
     if u'true' in config[u'results'][u'ignore_unmonitored'].lower() and not movie['monitored']:
         unmon.append(movie["tmdbId"])
 
-if full: numbers = [len(data) - check_num]
-else: 
-    numbers = [max(0, len(data) - len(skip + old_want) - len(set(old_unmon) - set(old_want).intersection(old_unmon)) \
-                   + len(set(old_unmon) - set(unmon) - set(wanted)) \
+if full:
+    numbers = [len(data) - check_num]
+else:
+    numbers = [max(0, len(data) - len(skip + old_want) - len(set(old_unmon) - set(old_want).intersection(old_unmon))
+                   + len(set(old_unmon) - set(unmon) - set(wanted))
                    + len(set(old_want) - set(wanted) - set(unmon)))]
 numbers += [len(col_ids), len(people.sections())]
 
 blacklist = config[u'blacklist'][u'blacklist'].split(",")
-if blacklist[0] != "": blacklist = [int(mov_id) for mov_id in blacklist]
+if blacklist[0] != "":
+    blacklist = [int(mov_id) for mov_id in blacklist]
 
 title_top = max([len(movie["title"]) for movie in data]) + 2
 rad_top = len(str(data[-1]['id'])) + 1
 
-found_col, found_per, found_black, col_art = [],[],[],[]
+found_col, found_per, found_black, col_art = [], [], [], []
 fails = 0
-  
-#%% Fatal Input Errors
 
-if full and quick: nologfatal(u"\n" + words[u'text'][u'uf_err'])
-if check_num > len(data): nologfatal(u"\n" + words[u'text'][u'start_err'].format(check_num, len(data)))
+# %% Fatal Input Errors
+
+if full and quick:
+    nologfatal(u"\n" + words[u'text'][u'uf_err'])
+if check_num > len(data):
+    nologfatal(u"\n" + words[u'text']
+               [u'start_err'].format(check_num, len(data)))
 if len(people.sections()) != 0:
     if not cache:
-        try: int(config[u'adding'][u'profile'])
-        except: nologfatal("{0} {1}".format(u"\n" + words[u'text'][u'template_err'], words[u'text'][u'int_err'])) 
-        if int(config[u'adding'][u'profile']) not in tmdb_ids: nologfatal(u"\n" + "{0} {1}".format(words[u'text'][u'template_err'], words[u'text'][u'prof_err']))
+        try:
+            int(config[u'adding'][u'profile'])
+        except:
+            nologfatal("{0} {1}".format(
+                u"\n" + words[u'text'][u'template_err'], words[u'text'][u'int_err']))
+        if int(config[u'adding'][u'profile']) not in tmdb_ids:
+            nologfatal(
+                u"\n" + "{0} {1}".format(words[u'text'][u'template_err'], words[u'text'][u'prof_err']))
 
-#%% Begin
-        
-log(words[u'text'][u'hello'] +  u"\n")
-if first: log(words[u'text'][u'first'])
-if cache: log(words[u'text'][u'cache'])
+# %% Begin
+
+log(words[u'text'][u'hello'] + u"\n")
+if first:
+    log(words[u'text'][u'first'])
+if cache:
+    log(words[u'text'][u'cache'])
 if single:
-    if peeps: 
+    if peeps:
         log(words[u'text'][u'tp_err'])
         peeps = False
-    if quick: 
+    if quick:
         log(words[u'text'][u'tu_err'])
         quick = False
-else: # Not single
+else:  # Not single
     if peeps:
-        if quick: 
+        if quick:
             log(words[u'text'][u'up_err'])
             peeps = False
-        else: log(words[u'text'][u'peeps'])
-    else: # not single not peeps
-        if check_num != 0: log(words[u'text'][u'start'].format(check_num))
-        if art: log(words[u'text'][u'art'])
+        else:
+            log(words[u'text'][u'peeps'])
+    else:  # not single not peeps
+        if check_num != 0:
+            log(words[u'text'][u'start'].format(check_num))
+        if art:
+            log(words[u'text'][u'art'])
 
-if any([single, peeps, quick, cache, first]): log("")
+if any([single, peeps, quick, cache, first]):
+    log("")
 
-if not peeps and not single: 
-    if full: log(words[u'text'][u'full_scan'].format(*numbers) +  u"\n")
-    elif quick: log(words[u'text'][u'quick_scan'].format(*numbers) +  u"\n")
-    else: log(words[u'text'][u'update_scan'].format(*numbers) +  u"\n")
+if not peeps and not single:
+    if full:
+        log(words[u'text'][u'full_scan'].format(*numbers) + u"\n")
+    elif quick:
+        log(words[u'text'][u'quick_scan'].format(*numbers) + u"\n")
+    else:
+        log(words[u'text'][u'update_scan'].format(*numbers) + u"\n")
 
 atexit.register(datadump)
 
-#%% Single Scan Mode
+# %% Single Scan Mode
 stage = 0
 if single:
     printtime = True
     check_num = 1
-    lookup_json = api("Radarr", com = "lookup", args = single_id)
-    w_rad, w_id, w_title = whitespace(single_id, lookup_json['title'], lookup_json['year'], "")
-    payload = "", " "*(len(str(len(data))) + 13 + len(w_rad) - len(words[u'text'][u'single'])), single_id, w_id, lookup_json['title'], lookup_json['year'], w_title
-    logtext = words[u'text'][u'single'] + words[u'text'][u'mov_info'].format(*payload)
+    lookup_json = api("Radarr", com="lookup", args=single_id)
+    w_rad, w_id, w_title = whitespace(
+        single_id, lookup_json['title'], lookup_json['year'], "")
+    payload = "", " "*(len(str(len(data))) + 13 + len(w_rad) - len(
+        words[u'text'][u'single'])), single_id, w_id, lookup_json['title'], lookup_json['year'], w_title
+    logtext = words[u'text'][u'single'] + \
+        words[u'text'][u'mov_info'].format(*payload)
     tmdb_check(single_id)
     log(u"")
     sys.exit()
 
-#%%  Database Search Loop
+# %%  Database Search Loop
 stage = 1
-if not peeps:    
-    if numbers[0] > 0: 
+if not peeps:
+    if numbers[0] > 0:
         log(words[u'text'][u'run_mov_mon'].format(*numbers) + u":\n")
-        printtime= True
+        printtime = True
         for movie in data[check_num:]:
             white_dex = " "*(len(str(len(data))) + 1 - len(str(check_num + 1)))
             payload = mov_info(check_num)
-            logtext = "{0}:{1}".format(check_num + 1, white_dex) + words[u'text'][u'radarr'].format(*payload) + words[u'text'][u'mov_info'].format(*payload)
-            
-            if movie["tmdbId"] in unmon: 
-                if movie["tmdbId"] not in old_unmon + old_want: log(words[u'text'][u'unmonitored'].format(logtext))
-            elif movie["tmdbId"] in wanted: 
-                if movie["tmdbId"] not in old_unmon + old_want: log(words[u'text'][u'file'].format(logtext))
+            logtext = "{0}:{1}".format(check_num + 1, white_dex) + words[u'text'][u'radarr'].format(
+                *payload) + words[u'text'][u'mov_info'].format(*payload)
+
+            if movie["tmdbId"] in unmon:
+                if movie["tmdbId"] not in old_unmon + old_want:
+                    log(words[u'text'][u'unmonitored'].format(logtext))
+            elif movie["tmdbId"] in wanted:
+                if movie["tmdbId"] not in old_unmon + old_want:
+                    log(words[u'text'][u'file'].format(logtext))
             elif movie["tmdbId"] in skip:
-                if full or movie["tmdbId"] in old_unmon + old_want: log(words[u'text'][u'checked'].format(logtext)) # if id in list
-            else: tmdb_check(movie["tmdbId"]) 
+                if full or movie["tmdbId"] in old_unmon + old_want:
+                    log(words[u'text'][u'checked'].format(
+                        logtext))  # if id in list
+            else:
+                tmdb_check(movie["tmdbId"])
             check_num += 1
         log("")
-if quick: sys.exit()
+if quick:
+    sys.exit()
 
-#%% Collection Monitor Loop
+# %% Collection Monitor Loop
 stage = 2
 if not peeps and not full:
     printtime = False
     log(words[u'text'][u'run_col_mon'].format(*numbers) + u":\n")
-    printtime= True
+    printtime = True
     for check_num, col_id in enumerate(col_ids):
         try:
             white_dex = " "*(len(str(len(data))) + 1 - len(str(check_num + 1)))
@@ -532,12 +723,12 @@ if not peeps and not full:
         except:
             print(col_id)
 
-#%% Person Monitor Loop
+# %% Person Monitor Loop
 stage = 3
 if len(people.sections()) != 0:
     printtime = False
     log(words[u'text'][u'run_per_mon'].format(*numbers) + u":\n")
-    printtime= True  
+    printtime = True
     for per_num, person in enumerate(people.sections()):
         white_dex = " "*(len(str(len(data))) + 1 - len(str(per_num + 1)))
         person_check(person)
