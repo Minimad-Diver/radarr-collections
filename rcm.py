@@ -728,6 +728,9 @@ if len(people.sections()) != 0:
     log(words[u'text'][u'run_per_mon'].format(*numbers) + u":\n")
     printtime = True
     for per_num, person in enumerate(people.sections()):
-        white_dex = " "*(len(str(len(data))) + 1 - len(str(per_num + 1)))
-        person_check(person)
-        log("")
+        try:
+            white_dex = " "*(len(str(len(data))) + 1 - len(str(per_num + 1)))
+            person_check(person)
+            log("")
+        except:
+            print(person)
